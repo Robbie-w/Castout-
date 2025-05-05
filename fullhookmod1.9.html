@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rob's Simple But Awesome Cast Out Calculator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: auto;
+        }
+        .container {
+            background-color: #f4f4f4;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+         /* Basic styling for checkbox labels */
+        .checkbox-label {
+            display: inline-block; /* Keep label next to checkbox */
+            margin-top: 0; /* Remove extra top margin */
+            font-weight: normal; /* Standard weight for this label */
+            margin-left: 5px; /* Space between checkbox and label */
+        }
+
+        input[type="number"],
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            box-sizing: border-box; /* Include padding in width */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+         /* Style for input groups (checkboxes and labels) */
+        .input-group {
+             margin-top: 10px; /* Space above group */
+             margin-bottom: 5px; /* Space below group */
+             display: flex; /* Use flexbox for alignment */
+             align-items: center; /* Vertically align checkbox and label */
+        }
+         .input-group input[type="checkbox"] {
+             margin-top: 0; /* Remove default top margin */
+        }
+
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #results {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #fff;
+        }
+        #results h3 {
+            margin-top: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #e9e9e9;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+         .warning {
+            color: #856404;
+            font-weight: bold;
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 5px;
+        }
+        .summary {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        /* Style for visual separation */
+        .section-separator {
+            margin-top: 25px; /* Add extra space above */
+            padding-top: 15px; /* Add padding above the content */
+            border-top: 1px solid #ccc; /* Add a subtle line */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Rob's Simple But Awesome Cast Out Calculator</h1>
+
+    <div class="container">
+        <h2>Input Parameters</h2>
+
+         <div class="input-group">
+            <input type="checkbox" id="simple_sum_checkbox" class="pattern-mode-checkbox"> <label for="simple_sum_checkbox" class="checkbox-label">Enable Simple End Count Mode</label>
+         </div>
+        <div class="input-group">
+            <input type="checkbox" id="hermes_checkbox" class="pattern-mode-checkbox"> <label for="hermes_checkbox" class="checkbox-label">Hermes Cast Pattern</label>
+         </div>
+
+         <div class="input-group">
+            <input type="checkbox" id="fourteen_in_two_out_checkbox" class="pattern-mode-checkbox"> <label for="fourteen_in_two_out_checkbox" class="checkbox-label">14 in 2 out Pattern</label>
+         </div>
+
+        <label for="max_hook_number" class="section-separator">Total Hooks Available (Max Hook Number):</label> <input type="number" id="max_hook_number" value="5120" min="1">
+        <small>The highest hook number available for use in the Jacquard head (used in Pattern Mode).</small>
+
+
+        <label for="hook_pattern">Custom Cast Out Pattern:</label>
+        <input type="text" id="hook_pattern" value="xox">
+        <small>'x' = active/used hook, 'o' = inactive/skipped hook. This pattern repeats (used in Pattern Mode unless a pattern checkbox is checked).</small>
+
+        <label for="start_hook" class="section-separator">Pattern Starting Hook Number:</label> <input type="number" id="start_hook" value="1" min="1">
+        <small>The physical hook number where the pattern begins (used in Pattern Mode and as the starting index in Simple Mode).</small>
+
+        <label for="list_ends">Ends per List (Selvedge):</label>
+        <input type="number" id="list_ends" value="24" min="0">
+
+        <label for="scarf_ends">Ends per Scarf Section:</label>
+        <input type="number" id="scarf_ends" value="400" min="1">
+
+        <label for="cutting_gap_ends">Ends per Cutting Gap:</label>
+        <input type="number" id="cutting_gap_ends" value="12" min="0">
+
+        <label for="num_scarves">Number of Scarves:</label>
+        <input type="number" id="num_scarves" value="3" min="1">
+
+        <button onclick="calculateCastOut()">Calculate Cast Out</button>
+    </div>
+
+    <div id="results" style="display: none;">
+        <h3>Cast Out Results</h3>
+        <div id="results-table"></div>
+        <div id="results-summary" class="summary"></div>
+        <div id="error-message" class="error"></div>
+        <div id="warning-message" class="warning"></div>
+    </div>
+
+    <script>
+        // Script to ensure only one pattern/mode checkbox is checked at a time
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get references to the checkboxes
+            const simpleCheckbox = document.getElementById('simple_sum_checkbox');
+            const hermesCheckbox = document.getElementById('hermes_checkbox');
+            const fourteenCheckbox = document.getElementById('fourteen_in_two_out_checkbox');
+
+            // Store them in an array for easy iteration
+            const patternModeCheckboxes = [simpleCheckbox, hermesCheckbox, fourteenCheckbox];
+
+            // Add a change listener to each checkbox
+            patternModeCheckboxes.forEach(function(checkbox) {
+                checkbox.addEventListener('change', function(event) {
+                    const clickedCheckbox = event.target;
+
+                    // If the checkbox was just checked, uncheck the others
+                    if (clickedCheckbox.checked) {
+                        patternModeCheckboxes.forEach(function(cb) {
+                            if (cb !== clickedCheckbox) {
+                                cb.checked = false;
+                            }
+                        });
+                    }
+                });
+            });
+        });
+
+        function calculateCastOut() {
+            // --- Get Input Values ---
+            const startHook = parseInt(document.getElementById('start_hook').value); // Read startHook universally
+            const maxHookNumber = parseInt(document.getElementById('max_hook_number').value); // Read maxHookNumber universally
+            const listEnds = parseInt(document.getElementById('list_ends').value);
+            const scarfEnds = parseInt(document.getElementById('scarf_ends').value);
+            const cuttingGapEnds = parseInt(document.getElementById('cutting_gap_ends').value);
+            const numScarves = parseInt(document.getElementById('num_scarves').value);
+
+            // Get checkbox states
+            const isSimpleSumMode = document.getElementById('simple_sum_checkbox').checked;
+            const hermesChecked = document.getElementById('hermes_checkbox').checked;
+            const fourteenChecked = document.getElementById('fourteen_in_two_out_checkbox').checked;
+
+            const resultsDiv = document.getElementById('results');
+            const tableDiv = document.getElementById('results-table');
+            const summaryDiv = document.getElementById('results-summary'); // Corrected typo
+            const errorDiv = document.getElementById('error-message');
+            const warningDiv = document.getElementById('warning-message');
+
+            // Clear previous results
+            tableDiv.innerHTML = '';
+            summaryDiv.innerHTML = '';
+            errorDiv.innerHTML = '';
+            warningDiv.innerHTML = '';
+            resultsDiv.style.display = 'none'; // Hide results initially
+
+            // --- Input Validation (Universal) ---
+             if (isNaN(listEnds) || listEnds < 0 ||
+                isNaN(scarfEnds) || scarfEnds < 1 ||
+                isNaN(cuttingGapEnds) || cuttingGapEnds < 0 ||
+                isNaN(numScarves) || numScarves < 1 ||
+                 isNaN(startHook) || startHook < 1) { // Validate startHook universally
+                errorDiv.textContent = "Error: Please enter valid positive numbers for ends and number of scarves (ends can be 0). Start Hook must be at least 1.";
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            // --- Determine Hook Pattern (Only relevant in Pattern Mode) ---
+            let hookPattern = '';
+            let patternSource = 'input'; // 'input', 'hermes', '14in2out'
+
+            if (!isSimpleSumMode) { // Only determine pattern if not in simple mode
+                 if (hermesChecked) {
+                     hookPattern = "xoxxoxxoxoxxoxxo";
+                     patternSource = 'hermes';
+                 } else if (fourteenChecked) {
+                     hookPattern = "xxxxxxxxxxxxxxoo";
+                     patternSource = '14in2out';
+                 } else {
+                     // Read from input only if no pattern checkbox is checked
+                     hookPattern = document.getElementById('hook_pattern').value.trim().toLowerCase();
+                     patternSource = 'input';
+                 }
+            }
+
+
+            // --- Mode Logic ---
+            if (isSimpleSumMode) {
+                // --- Simple End Count Mode ---
+                // Start the cumulative index count from the input startHook
+                let currentEndIndex = startHook - 1; // We use -1 because the first index is current + 1
+                let totalEndsCalculated = 0; // To track the total number of ends summed
+                const results = [];
+
+                 // Define sections for simple sum mode (using revised conditional logic for gaps)
+                 const sectionsToSum = [
+                     { name: "Start List", ends: listEnds },
+                     { name: "Gap after Start List", ends: cuttingGapEnds, conditional: (listEnds > 0 || numScarves > 0) },
+                 ];
+
+                 for (let i = 0; i < numScarves; i++) {
+                     sectionsToSum.push({ name: `Scarf ${i + 1}`, ends: scarfEnds });
+                     if (i < numScarves - 1) {
+                          sectionsToSum.push({ name: `Gap between Scarf ${i + 1} & ${i + 2}`, ends: cuttingGapEnds, conditional: true });
+                     }
+                 }
+                 sectionsToSum.push(
+                      { name: "Gap before End List", ends: cuttingGapEnds, conditional: (listEnds > 0 || numScarves > 0) },
+                      { name: "End List", ends: listEnds }
+                 );
+
+
+                sectionsToSum.forEach(section => {
+                     // Include sections with ends > 0, or conditional gaps with ends > 0, or 0-end lists
+                     const includeSection = section.ends > 0 || (section.name.includes("Gap") && cuttingGapEnds > 0 && section.conditional) || (section.name.includes("List") && section.ends === 0);
+
+                    if (includeSection) {
+                         const sectionStartEnd = currentEndIndex + 1;
+                         const sectionEndEnd = currentEndIndex + section.ends;
+
+                         results.push({
+                             name: section.name,
+                             start: section.ends > 0 ? sectionStartEnd : '-',
+                             end: section.ends > 0 ? sectionEndEnd : '-',
+                             endsInSection: section.ends
+                         });
+                         currentEndIndex += section.ends;
+                         totalEndsCalculated += section.ends;
+                    }
+                });
+
+
+                // Display Results Table for Simple Mode
+                let tableHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Section Name</th>
+                                <th>Start End Index</th>
+                                <th>End End Index</th>
+                                <th>Ends in Section</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                results.forEach(res => {
+                     tableHTML += `
+                        <tr>
+                            <td>${res.name}</td>
+                            <td>${res.start}</td>
+                            <td>${res.end}</td>
+                            <td>${res.endsInSection}</td>
+                        </tr>
+                    `;
+                });
+                tableHTML += `</tbody></table>`;
+                tableDiv.innerHTML = tableHTML;
+
+                // Display Summary for Simple Mode
+                summaryDiv.innerHTML = `
+                    Total Ends Calculated: ${totalEndsCalculated}<br>
+                    Last End Index Reached: ${totalEndsCalculated > 0 ? currentEndIndex : (startHook > 1 ? startHook - 1 : '-') }
+                    `; // Show last index if ends > 0, otherwise show startHook-1 or '-'
+
+                warningDiv.textContent = ''; // No warnings in this mode
+                errorDiv.textContent = '';   // No calculation errors in this mode (only input validation)
+
+
+            } else {
+                // --- Pattern Calculation Mode ---
+
+                // maxHookNumber and startHook are read universally
+                // hookPattern and patternSource determined above
+
+                 // Pattern mode specific validation
+                 if (isNaN(maxHookNumber) || maxHookNumber < 1 || startHook > maxHookNumber) {
+                     errorDiv.textContent = "Error: Please enter valid positive numbers for hooks. Starting hook cannot exceed total hooks.";
+                     resultsDiv.style.display = 'block';
+                     return;
+                 }
+                 // Only validate pattern string format if it came from the input field
+                 if (patternSource === 'input' && (!hookPattern || !/^[xo]+$/.test(hookPattern))) {
+                     errorDiv.textContent = "Error: Hook Usage Pattern is invalid. Use only 'x' and 'o'.";
+                     resultsDiv.style.display = 'block';
+                     return;
+                 }
+
+                 // --- Pattern Calculation Logic with First Scarf Alignment ---
+
+                let currentPhysicalHook = startHook; // Calculation starts from startHook
+                const patternLength = hookPattern.length;
+                const results = []; // Results array for pattern mode
+                let calculationError = null;
+
+                 // Helper function to find the next active hook >= startScanHook
+                 function findNextActiveHook(startScanHook, pattern, startPatternHook, maxHook) {
+                    let currentScanHook = startScanHook;
+                    const patternLength = pattern.length;
+
+                    while (currentScanHook <= maxHook) {
+                        // Pattern index relative to startPatternHook
+                        const patternIndex = (currentScanHook - startPatternHook + patternLength * 1000) % patternLength;
+
+                        if (pattern[patternIndex] === 'x') {
+                            return currentScanHook; // Found the next active hook
+                        }
+                        currentScanHook++;
+                    }
+                    return -1; // Indicates ran out of hooks
+                }
+
+                 // Helper function to allocate hooks for a section based on pattern
+                 // This function advances the GLOBAL currentPhysicalHook
+                 function getHooksForSection(endsNeeded, sectionName) {
+                     if (endsNeeded === 0) {
+                         // Report physical hooks if endsNeeded is 0, but only if currentPhysicalHook
+                         // has advanced *past* the initial startHook position.
+                         // For 0-end sections, the physical span is 0, but we need to report the start/end hook
+                         // as the point *before* and *after* this 0-end section *would* have started.
+                         const sectionStartForZero = currentPhysicalHook;
+                         const sectionEndForZero = currentPhysicalHook - 1; // End is just before start
+                         return {
+                             name: sectionName,
+                             start: sectionStartForZero, // Physical hook before this section
+                             end: sectionEndForZero,     // Physical hook after this section (same as before)
+                             activeHooks: 0,
+                             physicalHooks: 0,
+                             error: null,
+                             endsNeeded: 0
+                         };
+                     }
+
+                     const sectionStartHook = currentPhysicalHook; // Record start hook for this section
+                     let activeHooksFound = 0;
+                     let physicalHooksInSection = 0;
+                     let sectionEndHook = currentPhysicalHook - 1; // Initialize last hook examined
+
+                     while (activeHooksFound < endsNeeded) {
+                         if (currentPhysicalHook > maxHookNumber) {
+                             return { name: sectionName, error: `Ran out of available hooks (reached ${maxHookNumber}) while allocating for ${sectionName}. Needed ${endsNeeded} active hooks, found ${activeHooksFound}.` };
+                         }
+
+                         // Pattern index calculation relative to startHook
+                         const patternIndex = (currentPhysicalHook - startHook + patternLength * 1000) % patternLength;
+                         const isActive = hookPattern[patternIndex] === 'x';
+
+                         if (isActive) {
+                             activeHooksFound++;
+                         }
+
+                         sectionEndHook = currentPhysicalHook; // This is the last physical hook *examined* in this iteration
+                         physicalHooksInSection++;
+                         currentPhysicalHook++; // Move to the next physical hook
+
+                         if (activeHooksFound === endsNeeded) {
+                             break; // Stop once required active hooks are found
+                         }
+                     }
+
+                     return {
+                         name: sectionName,
+                         start: sectionStartHook,
+                         end: sectionEndHook, // Last physical hook actually included in the count
+                         activeHooks: activeHooksFound,
+                         physicalHooks: physicalHooksInSection,
+                         error: null,
+                         endsNeeded: endsNeeded // Track requested ends
+                     };
+                 }
+
+
+                // --- Allocate Sections for Pattern Mode (with First Scarf Alignment) ---
+                let sectionResult;
+
+                // 1. Start List (Allocate normally)
+                sectionResult = getHooksForSection(listEnds, "Start List");
+                if (sectionResult.error) { calculationError = sectionResult; }
+                else { results.push(sectionResult); }
+                let hookAfterList = currentPhysicalHook; // Physical hook immediately after the List allocation finishes
+
+                // Variables for alignment and gap before first scarf (only if scarves exist)
+                let firstScarfHook = -1;
+                let skippedHooksBeforeScarf = 0;
+                let gapResult = null; // To hold the result of the combined gap/skip section
+
+                // 2. Find Alignment Hook for First Scarf (if scarves exist and no prior error)
+                if (numScarves > 0 && !calculationError) {
+                    firstScarfHook = findNextActiveHook(hookAfterList, hookPattern, startHook, maxHookNumber);
+
+                    if (firstScarfHook === -1) {
+                        calculationError = { name: "Scarf Alignment", error: `Ran out of available hooks (reached ${maxHookNumber}) while searching for the first active hook for Scarf 1 alignment starting from hook ${hookAfterList}.` };
+                    } else {
+                         skippedHooksBeforeScarf = firstScarfHook - hookAfterList;
+                    }
+                }
+
+                // 3. Allocate Gap after Start List (Handle active ends AND skips)
+                // Only add this section if it requires active ends (>0) OR there were skips (>0)
+                // AND it's logically placed after a list/before scarves (listEnds > 0 || numScarves > 0)
+                const shouldIncludeGapAfterList = (cuttingGapEnds > 0 || skippedHooksBeforeScarf > 0) && (listEnds > 0 || numScarves > 0);
+
+                if (shouldIncludeGapAfterList && !calculationError) {
+                     let gapStartsAt = currentPhysicalHook; // Gap starts where the previous section left off
+
+                     // If there are active ends needed for the gap
+                     if (cuttingGapEnds > 0) {
+                         // Allocate the active ends for the gap starting from gapStartsAt
+                         // NOTE: getHooksForSection will advance currentPhysicalHook based *only* on finding cuttingGapEnds
+                         let gapEndsAllocationResult = getHooksForSection(cuttingGapEnds, "Gap after Start List"); // This updates currentPhysicalHook
+
+                         if (gapEndsAllocationResult.error) {
+                             calculationError = gapEndsAllocationResult;
+                         } else {
+                             // Create the gap result object, combining active ends allocation info with skips
+                             // The physical span includes the hooks for active ends AND the skips before the scarf alignment
+                             gapResult = {
+                                 name: "Gap after Start List",
+                                 start: gapStartsAt, // Starts where gap allocation began
+                                 // End is after the gap ends allocation AND after any skips.
+                                 // If numScarves > 0, the gap physically ends right before the scarf alignment hook.
+                                 // If numScarves === 0, there is no scarf to align to, so gap ends after its active ends allocation plus skips.
+                                  end: numScarves > 0 && firstScarfHook !== -1 ? firstScarfHook - 1 : gapEndsAllocationResult.end + skippedHooksBeforeScarf,
+                                  activeHooks: gapEndsAllocationResult.activeHooks, // Should be cuttingGapEnds unless max hooks hit
+                                  physicalHooks: gapEndsAllocationResult.physicalHooks + skippedHooksBeforeScarf,
+                                  error: null, // Error handled by calculationError variable
+                                  endsNeeded: cuttingGapEnds // Report the ends requested
+                              };
+                              results.push(gapResult);
+
+                              // currentPhysicalHook is currently positioned after finding gap ends.
+                              // If there is a scarf, it will be manually jumped to firstScarfHook next.
+                         }
+                     } else if (skippedHooksBeforeScarf > 0 && numScarves > 0) { // If no active ends needed, but there are skips AND scarves exist
+                         // Create a 0-end gap section just to report the skips before scarf 1 alignment
+                         // This only happens if numScarves > 0 because alignment is before Scarf 1.
+                         gapResult = {
+                             name: "Gap after Start List (Alignment Skips)",
+                             start: gapStartsAt, // Starts right after the previous section
+                             end: firstScarfHook - 1, // Ends right before the scarf alignment hook
+                             activeHooks: 0,
+                             physicalHooks: skippedHooksBeforeScarf,
+                             error: null,
+                             endsNeeded: 0
+                         };
+                         results.push(gapResult);
+                         // currentPhysicalHook is still at gapStartsAt. It needs to jump to firstScarfHook.
+                     }
+
+                     // If the gap was included AND there is a scarf AND no error finding alignment hook,
+                     // currentPhysicalHook needs to jump to the calculated firstScarfHook now.
+                     if (numScarves > 0 && !calculationError && firstScarfHook !== -1) {
+                          currentPhysicalHook = firstScarfHook; // MANUAL JUMP
+                     }
+                     // If numScarves === 0, currentPhysicalHook is already correctly positioned after any gap allocation.
+
+                } // End shouldIncludeGapAfterList if
+
+
+                // 4. Allocate First Scarf (Start from the aligned hook if scarves exist)
+                // If numScarves > 0 and no prior error (including alignment search)
+                if (numScarves > 0 && !calculationError) {
+                    // currentPhysicalHook is already set to firstScarfHook by the manual jump above
+
+                    // Allocate Scarf 1 normally from the aligned hook
+                    sectionResult = getHooksForSection(scarfEnds, "Scarf 1"); // This updates currentPhysicalHook
+                    if (sectionResult.error) { calculationError = sectionResult; }
+                    else { results.push(sectionResult); }
+
+                    // Remaining scarves and inter-scarf gaps (Allocate normally)
+                    if (!calculationError) {
+                        // Start from the second scarf (index 1)
+                        for (let i = 1; i < numScarves; i++) { // Start loop from 1
+                            // Cutting Gap between scarves (Allocate normally)
+                            if (cuttingGapEnds > 0) {
+                                 sectionResult = getHooksForSection(cuttingGapEnds, `Gap between Scarf ${i} & ${i + 1}`);
+                                  if (sectionResult.error) { calculationError = sectionResult; break; }
+                                 results.push(sectionResult);
+                            }
+                            // Scarf (Allocate normally)
+                            sectionResult = getHooksForSection(scarfEnds, `Scarf ${i + 1}`);
+                            if (sectionResult.error) { calculationError = sectionResult; break; }
+                            results.push(sectionResult);
+                        }
+                    }
+                } // End numScarves > 0 allocation if
+
+
+                // 5. Allocate Gap before End List (Allocate normally)
+                // This gap follows either the last scarf or the start list (if numScarves is 0)
+                 const shouldIncludeGapBeforeEndList = cuttingGapEnds > 0 && (listEnds > 0 || numScarves > 0); // Same conditional logic as after list
+
+                 if (shouldIncludeGapBeforeEndList && !calculationError) {
+                    sectionResult = getHooksForSection(cuttingGapEnds, "Gap before End List");
+                    if (sectionResult.error) { calculationError = sectionResult; }
+                    else { results.push(sectionResult); }
+                }
+
+                // 6. End List (Allocate normally)
+                 if (!calculationError) {
+                    sectionResult = getHooksForSection(listEnds, "End List");
+                     if (sectionResult.error) { calculationError = sectionResult; }
+                     else { results.push(sectionResult); }
+                }
+
+                // --- Display Results for Pattern Mode ---
+                // Calculate total active hooks by summing from the results array
+                totalActiveHooksUsed = results.reduce((total, res) => total + (res.activeHooks || 0), 0);
+
+                 if (calculationError) {
+                     // If calculationError is an object from a section result or alignment
+                     if (calculationError.error) {
+                         errorDiv.textContent = `Error allocating ${calculationError.name}: ${calculationError.error}`;
+                     } else {
+                         // Fallback for generic calculation error if not structured as an object
+                          errorDiv.textContent = `Calculation Error: ${calculationError}`;
+                     }
+                     warningDiv.textContent = ''; // Clear any potential warning if there's a hard error
+                 } else {
+                     // No calculation error, display successful results
+                     let tableHTML = `
+                         <table>
+                             <thead>
+                                 <tr>
+                                     <th>Section Name</th>
+                                     <th>Start Hook</th>
+                                     <th>End Hook</th>
+                                     <th>Active Hooks (Ends)</th>
+                                     <th>Physical Hooks Used</th>
+                                 </tr>
+                             </thead>
+                             <tbody>
+                     `;
+                     results.forEach(res => {
+                          // Display rows even if 0 hooks were allocated (e.g. for 0-end lists/gaps)
+                          // to show the full structure, but only for sections that were intended to be included
+                           if(res.endsNeeded >= 0 || (res.name.includes("Gap") && res.physicalHooks > 0) || res.name.includes("List")) { // Show defined sections or gaps with physical hooks
+                              tableHTML += `
+                                 <tr>
+                                     <td>${res.name}</td>
+                                     <td>${res.physicalHooks > 0 ? res.start : (res.name.includes("Alignment Skips") || res.name.includes("Gap") ? res.start : '-')}</td> <td>${res.physicalHooks > 0 ? res.end : (res.name.includes("Alignment Skips") || res.name.includes("Gap") ? res.end : '-')}</td> <td>${res.activeHooks}</td>
+                                     <td>${res.physicalHooks}</td>
+                                 </tr>
+                             `;
+                          }
+                     });
+                     tableHTML += `</tbody></table>`;
+                     tableDiv.innerHTML = tableHTML;
+
+                     // Find the last hook actually used from results array
+                     const lastHookUsed = results.reduce((maxHook, res) => {
+                         // Only consider sections that actually consumed physical hooks or defined a physical span
+                         return res.physicalHooks > 0 && res.end > maxHook ? res.end : maxHook;
+                      }, startHook -1); // Initialize relative to start hook
+
+
+                     summaryDiv.innerHTML = `
+                         Total Active Hooks (Ends) Used: ${totalActiveHooksUsed}<br>
+                         Pattern Ends On Hook: ${lastHookUsed < startHook ? (results.length > 0 ? startHook -1 : '-') : lastHookUsed}<br> Total Physical Hooks Consumed by Pattern: ${lastHookUsed < startHook ? 0 : lastHookUsed - startHook + 1}
+                     `;
+
+                      // Check for warning if calculation was successful but exceeds max hooks
+                      if (lastHookUsed >= startHook && lastHookUsed > maxHookNumber) { // Check only if hooks were actually used past startHook-1
+                          warningDiv.textContent = `Warning: The calculated pattern end hook (${lastHookUsed}) exceeds the Total Hooks Available (${maxHookNumber}). The calculation is shown based on requested ends, but you may not have enough physical hooks available.`;
+                          errorDiv.textContent = ''; // Clear error if it was just a warning
+                      } else {
+                          warningDiv.textContent = ''; // Ensure warning is clear if no issue
+                          errorDiv.textContent = ''; // Ensure error is clear
+                      }
+                 }
+            }
+
+            resultsDiv.style.display = 'block'; // Show the results div after calculation (or error)
+        }
+    </script>
+
+</body>
+</html>
